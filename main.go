@@ -9,14 +9,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
-)
-
-const (
-	Sheet_Least_Row  = 4
-	Sheet_Max_Column = 1000
 )
 
 var (
@@ -34,13 +28,11 @@ func usage() {
 func main() {
 	flag.Parse()
 	if help {
-		fmt.Fprintf(os.Stderr, ``+"\n")
+		fmt.Fprintf(os.Stderr, ` 用于对比游戏服务器版本迭代中Excel目录的差别.
+param1: 旧的excel目录
+param2: 新的excel目录`+"\n")
 		return
 	}
-
-	go func() {
-		http.ListenAndServe("0.0.0.0:9999", nil)
-	}()
 
 	fmt.Println("reading old directory")
 	oldContents := fetchDirectoryContents(flag.Args()[0])

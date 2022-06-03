@@ -11,6 +11,11 @@ import (
 	"github.com/tealeg/xlsx/v3"
 )
 
+const (
+	Sheet_Least_Row  = 4
+	Sheet_Max_Column = 1000
+)
+
 func fetchDirectoryContents(directory string) map[string]string {
 	fileList, _ := getAllFiles(directory)
 	return loadAllFiles(fileList)
