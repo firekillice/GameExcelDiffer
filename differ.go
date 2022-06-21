@@ -188,7 +188,18 @@ func dumpEvents() {
 	defer file.Close()
 	file.WriteString("\xEF\xBB\xBF")
 
-	sort.Slice(eventInfoList, func(i, j int) bool { return eventInfoList[i].eventType > eventInfoList[j].eventType })
+	var comparor = func(i, j int) bool {
+		if eventInfoList[i].eventType > eventInfoList[j].eventType {
+			return true
+		} else if eventInfoList[i].eventType < eventInfoList[j].eventType {
+			return false
+		} else {
+			return eventInfoList[i].table != eventInfoList[j].table
+		}
+	}
+
+	sort.Slice(eventInfoList, comparor)
+
 	for i := 0; i < len(eventInfoList); i++ {
 		var content = ""
 		element := eventInfoList[i]
