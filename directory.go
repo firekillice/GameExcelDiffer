@@ -93,7 +93,8 @@ func loadExcel(fp string) (map[string]string, error) {
 			value = strings.Replace(value, "\n", "", -1)
 			value = strings.Replace(value, "\t", "", -1)
 			value = strings.Replace(value, " ", "", -1)
-			saveKey := fmt.Sprintf("%s.%s.%s.R%d.L%d", filename, id, key, i, j)
+			//saveKey := fmt.Sprintf("%s.%s.%s.R%d.L%d", filename, id, key, i, j)
+			saveKey := fmt.Sprintf("%s.%s.%s", filename, id, key)
 			excelData[saveKey] = value
 		}
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"sort"
@@ -32,6 +33,8 @@ type EventInfo struct {
 var eventInfoList []EventInfo
 var oldKeys []string
 var newKeys []string
+var allNewKeysJoinString string
+var allOldKeysJoinString string
 
 func diffContents(old map[string]string, new map[string]string) {
 	for ko, vo := range old {
@@ -42,78 +45,72 @@ func diffContents(old map[string]string, new map[string]string) {
 				eventInfoList = append(eventInfoList, EventInfo{eventType: ChangCell, key: ko, content: vo, newContent: vn})
 			}
 		} else {
-			confirmDeleteEvent(ko, getNewKeys(new))
+			getNewKeys(new)
+
+			confirmDeleteEvent(ko, allNewKeysJoinString)
 		}
 	}
 
 	for kn, _ := range new {
 		if _, exists := old[kn]; !exists {
-			confirmAddEvent(kn, getOldKeys(old))
+			getOldKeys(old)
+			confirmAddEvent(kn, allOldKeysJoinString)
 		}
 	}
 
 	dumpEvents()
 }
 
-func confirmDeleteEvent(targetKey string, keys []string) {
+func confirmDeleteEvent(targetKey string, newJoinString string) {
 	list := strings.Split(targetKey, ".")
 	table := list[0]
 	id := list[1]
 	field := list[2]
 
-	length := len(keys)
-	var joinString = ""
-	for i := 0; i < length; i++ {
-		if strings.HasPrefix(keys[i], table) {
-			joinString += keys[i]
-		}
-	}
-
 	var ei EventInfo
-	if len(joinString) == 0 {
+	match, _ := regexp.MatchString(table, newJoinString)
+	if !match {
 		ei.eventType = DeleteTable
 		ei.table = table
 	} else {
-		match, _ := regexp.MatchString(table+"\\."+id, joinString)
+		match, _ := regexp.MatchString(table+"\\."+id, newJoinString)
 		if match {
 			ei.eventType = DeleteIdentity
 			ei.identity = id
+			ei.table = table
 		} else {
 			ei.eventType = DeleteField
 			ei.field = field
+			ei.table = table
 		}
 	}
+
 	if !checkEventExists(ei) {
 		eventInfoList = append(eventInfoList, ei)
 	}
 }
 
-func confirmAddEvent(targetKey string, keys []string) {
+func confirmAddEvent(targetKey string, oldJoinString string) {
 	list := strings.Split(targetKey, ".")
 	table := list[0]
 	id := list[1]
 	field := list[2]
 
-	length := len(keys)
-	var joinString = ""
-	for i := 0; i < length; i++ {
-		if strings.HasPrefix(keys[i], table) {
-			joinString += keys[i]
-		}
-	}
-
 	var ei EventInfo
-	if len(joinString) == 0 {
+	match, _ := regexp.MatchString(table, oldJoinString)
+	if !match {
 		ei.eventType = AddTable
 		ei.table = table
 	} else {
-		match, _ := regexp.MatchString(table+"\\."+id, joinString)
+		match, _ := regexp.MatchString(table+"\\."+id, oldJoinString)
 		if match {
 			ei.eventType = AddField
 			ei.field = field
+			ei.table = table
 		} else {
 			ei.eventType = AddIdentity
 			ei.identity = id
+			ei.table = table
 		}
 	}
 	if !checkEventExists(ei) {
@@ -163,24 +160,24 @@ func checkEventExists(ei EventInfo) bool {
 	return false
 }
 
-func getOldKeys(contents map[string]string) []string {
+func getOldKeys(contents map[string]string) {
 	if len(oldKeys) > 0 {
-		return oldKeys
+		return
 	}
 	for k := range contents {
 		oldKeys = append(oldKeys, k)
 	}
-	return oldKeys
+	allOldKeysJoinString = strings.Join(oldKeys, "")
 }
 
-func getNewKeys(contents map[string]string) []string {
+func getNewKeys(contents map[string]string) {
 	if len(newKeys) > 0 {
-		return newKeys
+		return
 	}
 	for k := range contents {
 		newKeys = append(newKeys, k)
 	}
-	return newKeys
+	allNewKeysJoinString = strings.Join(newKeys, "")
 }
 
 func dumpEvents() {
@@ -193,29 +190,33 @@ func dumpEvents() {
 
 	sort.Slice(eventInfoList, func(i, j int) bool { return eventInfoList[i].eventType > eventInfoList[j].eventType })
 	for i := 0; i < len(eventInfoList); i++ {
+		var content = ""
 		element := eventInfoList[i]
 		switch element.eventType {
 		case AddTable:
-			file.WriteString("AddTable" + "\t" + element.table + "\n")
+			content = "AddTable" + "\t" + element.table + "\n"
 			break
 		case DeleteTable:
-			file.WriteString("DeleteTable" + "\t" + element.table + "\n")
+			content = "DeleteTable" + "\t" + element.table + "\n"
 			break
 		case AddIdentity:
-			file.WriteString("AddIdentity" + "\t" + element.table + "\t" + element.identity + "\n")
+			content = "AddIdentity" + "\t" + element.table + "\t" + element.identity + "\n"
 			break
 		case DeleteIdentity:
-			file.WriteString("DeleteIdentity" + "\t" + element.table + "\t" + element.identity + "\n")
+			content = "DeleteIdentity" + "\t" + element.table + "\t" + element.identity + "\n"
 			break
 		case AddField:
-			file.WriteString("AddField" + "\t" + element.table + "\t" + element.field + "\n")
+			content = "AddField" + "\t" + element.table + "\t" + element.field + "\n"
 			break
 		case DeleteField:
-			file.WriteString("DeleteField" + "\t" + element.table + "\t" + element.field + "\n")
+			content = "DeleteField" + "\t" + element.table + "\t" + element.field + "\n"
 			break
 		case ChangCell:
-			file.WriteString("ChangCell" + "\t" + element.key + "\t" + element.content + "\t" + element.newContent + "\n")
+			content = "ChangCell" + "\t" + element.key + "\t" + element.content + "\t" + element.newContent + "\n"
 			break
 		}
+
+		file.WriteString(content)
+		fmt.Print(content)
 	}
 }
